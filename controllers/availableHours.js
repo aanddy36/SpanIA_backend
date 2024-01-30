@@ -1,12 +1,29 @@
-const getAvailableHours = (req,res)=>{
-    res.json({status:200, msg:'Available Hours info'})
-}
+const { StatusCodes } = require("http-status-codes");
+const AvailableHours = require("../models/availableHours");
+require("dotenv").config();
 
-const editAvailableHours = (req,res)=>{
-    res.json({status:200, msg:req.body})
-}
+const getAvailableHours = async (req, res) => {
+  try {
+    const schedule = await AvailableHours.find({});
+    res.status(StatusCodes.CREATED).json({ schedule });
+  } catch (error) {
+    res.status(StatusCodes.NOT_ACCEPTABLE).json({ msg: error });
+  }
+};
+
+const editAvailableHours = async (req, res) => {
+  try {
+    console.log(req.body);
+    const {newSchedule} = req.body
+    await AvailableHours.deleteMany({});
+    const schedule = await AvailableHours.insertMany(newSchedule);
+    res.status(StatusCodes.CREATED).json({ schedule });
+  } catch (error) {
+    res.status(StatusCodes.NOT_ACCEPTABLE).json({ msg: error });
+  }
+};
 
 module.exports = {
-    getAvailableHours,
-    editAvailableHours
-}
+  getAvailableHours,
+  editAvailableHours,
+};

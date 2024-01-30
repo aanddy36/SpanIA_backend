@@ -1,11 +1,53 @@
 const Student = require("../models/student");
+const SingleClass = require("../models/class");
 const { StatusCodes } = require("http-status-codes");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-const getStudents = (req, res) => {
-  res.json({ status: 200, msg: "Students info" });
+const getStudents = async (req, res) => {
+  const { input } = req.query;
+  try {
+    const classCountResult = await SingleClass.aggregate([
+      {
+        $group: {
+          _id: "$studentId",
+          classCount: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          studentId: "$_id",
+          classCount: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    const allStudents = await Student.find({});
+
+    const result = allStudents.map((student) => {
+      const classCountData = classCountResult.find((data) =>
+        data.studentId.equals(student._id)
+      );
+      return {
+        _id: student._id,
+        name: student.name,
+        email: student.email,
+        profilePhoto: student.profilePhoto,
+        classCount: classCountData ? classCountData.classCount : 0,
+      };
+    });
+    let newResult = result;
+    if (input) {
+      newResult = result.filter((item) =>
+        item.name.toLowerCase().includes(input.toLowerCase())
+      );
+    }
+    res.status(StatusCodes.OK).json({ newResult });
+  } catch (error) {
+    res.status(StatusCodes.NOT_ACCEPTABLE).json({ msg: error });
+  }
 };
 
 const createStudent = async (req, res) => {
@@ -76,7 +118,7 @@ const loginStudent = async (req, res) => {
     email: existingStudent.email,
     phone: existingStudent.phone,
     joinedAt: existingStudent.createdAt,
-    profilePhoto:existingStudent.profilePhoto,
+    profilePhoto: existingStudent.profilePhoto,
     role: "user",
   };
   const token = jwt.sign(userPayload, process.env.SECRET, {

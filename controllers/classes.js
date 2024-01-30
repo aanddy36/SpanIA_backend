@@ -1,4 +1,5 @@
 const SingleClass = require("../models/class");
+const Student = require("../models/student");
 const { StatusCodes } = require("http-status-codes");
 
 const getClasses = async (req, res) => {
@@ -95,10 +96,124 @@ const getClassesOfUser = async (req, res) => {
   }
 };
 
+const getSummary = async (req, res) => {
+  try {
+    const nClasses = await SingleClass.countDocuments({});
+    const nStudents = await Student.countDocuments({});
+    let result = await SingleClass.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalSum: { $sum: "$price" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalSum: 1,
+        },
+      },
+    ]);
+
+    const totalSales = result.length > 0 ? result[0].totalSum : 0;
+    let newRresult = await SingleClass.aggregate([
+      {
+        $project: {
+          numericDuration: { $toInt: "$duration" }, // Convert duration to integer
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalSum: { $sum: "$numericDuration" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalSum: 1,
+        },
+      },
+    ]);
+
+    const totalHours = newRresult.length > 0 ? newRresult[0].totalSum / 60 : 0;
+    let summary = { nClasses, nStudents, totalSales, totalHours };
+
+    const newObject = await SingleClass.aggregate([
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$startsOn",
+              timezone: "UTC",
+            },
+          },
+          totalSales: { $sum: "$price" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          totalSales: 1,
+        },
+      },
+      {
+        $sort: { date: 1 },
+      },
+    ]);
+
+    const sales = newObject.map(({ date, totalSales }) => ({
+      label: date,
+      sales: totalSales,
+    }));
+
+    const pieChart = await SingleClass.aggregate([
+      {
+        $group: {
+          _id: "$duration",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          duration: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$_id", "60"] }, then: "60 min" },
+                { case: { $eq: ["$_id", "90"] }, then: "90 min" },
+                { case: { $eq: ["$_id", "120"] }, then: "120 min" },
+              ],
+              default: "Unknown",
+            },
+          },
+          value: "$count",
+          color: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$_id", "60"] }, then: "#84cc16" },
+                { case: { $eq: ["$_id", "90"] }, then: "#f97316" },
+                { case: { $eq: ["$_id", "120"] }, then: "#ef4444" },
+              ],
+              default: "#000000", // Default color if duration is unknown
+            },
+          },
+        },
+      },
+    ]);
+    res.status(StatusCodes.OK).json({ summary, sales, pieChart });
+  } catch (error) {
+    res.status(StatusCodes.NOT_ACCEPTABLE).json({ msg: error });
+  }
+};
+
 module.exports = {
   getClasses,
   createClass,
   getClassesOfUser,
+  getSummary,
 };
 
 const defineStatus = (startsOn, endsOn) => {

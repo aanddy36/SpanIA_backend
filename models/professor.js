@@ -18,10 +18,6 @@ const ProfessorSchema = mongoose.Schema(
       trim: true,
       required: [true, "Must provide a password"],
     },
-    profilePhoto:{
-      type:String,
-      default: "",
-    }
   },
   { timestamps: true }
 );

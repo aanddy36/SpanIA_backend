@@ -7,6 +7,7 @@ const availableHours = require("./routes/availableHours");
 const reservedHours = require("./routes/reservedHours");
 const configuration = require("./routes/configuration");
 const check = require("./routes/check");
+const imageUpload = require("./routes/imageUpload");
 const connectDB = require("./db/connection");
 require("dotenv").config();
 const cors = require("cors");
@@ -22,6 +23,7 @@ app.use("/api/v1/availableHours", availableHours);
 app.use("/api/v1/reservedHours", reservedHours);
 app.use("/api/v1/configuration", configuration);
 app.use("/api/v1/check", check);
+app.use("/api/v1/imageUpload", imageUpload);
 
 const PORT = process.env.PORT || 3000;
 
