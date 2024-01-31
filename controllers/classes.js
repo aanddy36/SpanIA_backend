@@ -1,4 +1,5 @@
 const SingleClass = require("../models/class");
+const ReservedHours = require("../models/reservedHours");
 const Student = require("../models/student");
 const { StatusCodes } = require("http-status-codes");
 
@@ -42,9 +43,32 @@ const getClasses = async (req, res) => {
 };
 
 const createClass = async (req, res) => {
+  const { theClass } = req.body;
+  const { hoursToReserve } = req.body;
+  const { time } = req.body;
+  const startingDate = new Date(Number(time));
+  startingDate.setDate(startingDate.getDate());
+  startingDate.setHours(0);
+  startingDate.setMinutes(0);
+  startingDate.setSeconds(0);
+  const endingDate = new Date(startingDate);
+  endingDate.setDate(endingDate.getDate() + 6);
+  endingDate.setHours(23);
+  endingDate.setMinutes(59);
+  endingDate.setSeconds(59);
   try {
-    const newClass = await SingleClass.create(req.body);
-    res.status(StatusCodes.CREATED).json({ newClass });
+    const newClass = await SingleClass.create(theClass);
+    await ReservedHours.insertMany(hoursToReserve);
+    const response = await ReservedHours.find({
+      hour: { $gte: startingDate, $lte: endingDate },
+    });
+    const reservedHours = response.map((cell) => {
+      return {
+        id: cell._id,
+        hour: cell.hour,
+      };
+    });
+    res.status(StatusCodes.CREATED).json({ newClass, reservedHours });
   } catch (error) {
     res.status(StatusCodes.NOT_ACCEPTABLE).json({ msg: error });
   }

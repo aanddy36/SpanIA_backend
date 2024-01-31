@@ -10,7 +10,7 @@ const {
 const authUser = require("../middleware/authUser");
 const authAdmin = require("../middleware/authAdmin");
 
-router.route("/").get(authAdmin, getClasses).post(createClass);
+router.route("/").get(authAdmin, getClasses).post(authUser,createClass);
 router.route("/summary").get(authAdmin,getSummary);
 router.route("/:studentId").get(authUser, getClassesOfUser);
 

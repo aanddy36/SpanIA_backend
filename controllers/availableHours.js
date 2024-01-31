@@ -13,7 +13,6 @@ const getAvailableHours = async (req, res) => {
 
 const editAvailableHours = async (req, res) => {
   try {
-    console.log(req.body);
     const {newSchedule} = req.body
     await AvailableHours.deleteMany({});
     const schedule = await AvailableHours.insertMany(newSchedule);
