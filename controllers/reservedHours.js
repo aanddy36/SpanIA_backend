@@ -20,12 +20,10 @@ const getReservedHours = async (req, res) => {
     const reservedHours = response.map((cell) => {
       return {
         id: cell._id,
-        hour: new Date(cell.hour),
+        hour: cell.hour,
       };
     });
-    res
-      .status(StatusCodes.OK)
-      .json({ reservedHours });
+    res.status(StatusCodes.OK).json({ reservedHours });
   } catch (error) {
     res.status(StatusCodes.NOT_ACCEPTABLE).json({ msg: error });
   }
